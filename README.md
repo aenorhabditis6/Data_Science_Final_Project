@@ -149,13 +149,6 @@ The methodologies developed could be applied to real-world discrete systems such
 - Neural network activation patterns
 - Ecological community dynamics
 
-### 7. Timeline and Milestones
-
-1. **Weeks 1-2:** System design and ground truth formulation
-2. **Weeks 3-4:** Data generation and feature extraction
-3. **Weeks 5-6:** Learning algorithm implementation and testing
-4. **Weeks 7-8:** Evaluation, analysis, and report writing
-
-### 8. Conclusion
+### 7. Conclusion
 
 This project proposes to bridge cellular automata with recent advances in learning interaction laws of agent-based systems. By treating the 3D Game of Life with multiple cell types as an agent-based system, we can apply and adapt methodologies to infer both network structure and interaction rules from observation data. This work not only demonstrates the broad applicability of these learning methods but also establishes new connections between discrete and continuous complex systems research.
