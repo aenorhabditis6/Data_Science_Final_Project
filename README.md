@@ -149,6 +149,14 @@ The methodologies developed could be applied to real-world discrete systems such
 - Neural network activation patterns
 - Ecological community dynamics
 
+Specifically, this project can potentially be applied to simulate the interaction between immune cells and antigens in human adaptive immune system response. As immune system is activated by interacting with itself to prepare for unknown antigens, the thresholds for Type A cells can represent the limits above wich the antibody can recognize other antibodies. In this case, Type A cells are immune cells (e.g., naïve or resting T cell), while Type B cells represent ACTIVATED immune cells. The transition of states from Type A cells to Type B cells represents 'A cell being activated by the presence of antigen'.
+
+
 ### 7. Conclusion
 
 This project proposes to bridge cellular automata with recent advances in learning interaction laws of agent-based systems. By treating the 3D Game of Life with multiple cell types as an agent-based system, we can apply and adapt methodologies to infer both network structure and interaction rules from observation data. This work not only demonstrates the broad applicability of these learning methods but also establishes new connections between discrete and continuous complex systems research.
+
+
+### 8. References
+1. https://arxiv.org/abs/cond-mat/0106649
+2. https://pubmed.ncbi.nlm.nih.gov/33730201/
