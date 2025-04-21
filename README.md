@@ -42,35 +42,7 @@ We propose a 3D cellular automaton with three possible states for each cell:
 
 The neighborhood structure includes 26 adjacent cells in a 3×3×3 cube (excluding the center). The ground truth system will use a subset of these neighbors, which the learning algorithms will attempt to identify.
 
-#### 4.2 Interaction Kernel Design
-
-To align with research on distance-dependent interactions, we define summary statistics that capture the configuration of neighbors:
-
-- N₁, N₂, N₃: Number of Type A neighbors at face, edge, and corner distances
-- M₁, M₂, M₃: Number of Type B neighbors at face, edge, and corner distances
-
-The ground truth kernel maps these features and the current state to the next state:
-
-For Type A cells:
-- Survive if: 2 ≤ (N₁ + 0.7·N₂ + 0.4·N₃) ≤ 3.5 AND (M₁ + 0.7·M₂ + 0.4·M₃) < 2
-- Transition to Type B if: (M₁ + 0.7·M₂ + 0.4·M₃) ≥ 2
-- Otherwise die
-
-For Type B cells:
-- Survive if: 1.5 ≤ (M₁ + 0.7·M₂ + 0.4·M₃) ≤ 4 AND (N₁ + 0.7·N₂ + 0.4·N₃) < 3
-- Otherwise die
-
-For Dead cells:
-- Become Type A if: 2.8 ≤ (N₁ + 0.7·N₂ + 0.4·N₃) ≤ 3.2 AND (M₁ + 0.7·M₂ + 0.4·M₃) < 1
-- Become Type B if: 2.8 ≤ (M₁ + 0.7·M₂ + 0.4·M₃) ≤ 3.2 AND (N₁ + 0.7·N₂ + 0.4·M₃) < (M₁ + 0.7·M₂ + 0.4·M₃)
-- Otherwise remain dead
-
-This design incorporates several key features from advanced research:
-- Distance-dependent weighting
-- Heterogeneous interactions between different cell types
-- Thresholds that create nonlinear behavior
-
-#### 4.3 Data Generation Approach
+#### 4.2 Data Generation Approach
 
 We will generate synthetic data through:
 1. Multiple simulation runs with varied initial conditions
@@ -78,7 +50,7 @@ We will generate synthetic data through:
 3. Computing feature vectors for each cell based on neighborhood configurations
 4. Creating labeled datasets of (features, current_state) → next_state pairs
 
-#### 4.4 Learning Algorithms
+#### 4.3 Learning Algorithms
 
 We will adapt two key algorithms:
 
@@ -97,7 +69,7 @@ We will adapt two key algorithms:
 
 The key adaptation for both algorithms is replacing continuous regression with classification methods suitable for discrete systems.
 
-#### 4.5 Evaluation Methods
+#### 4.4 Evaluation Methods
 
 We will evaluate learning performance through:
 
@@ -160,3 +132,18 @@ This project proposes to bridge cellular automata with recent advances in learni
 ### 8. References
 1. https://arxiv.org/abs/cond-mat/0106649
 2. https://pubmed.ncbi.nlm.nih.gov/33730201/
+
+
+
+
+### 4/21 Meeting with MM
+
+
+
+
+
+
+
+
+
+
