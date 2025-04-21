@@ -136,8 +136,6 @@ This project proposes to bridge cellular automata with recent advances in learni
 
 
 
-### 4/21 Meeting with MM
-
 
 
 
