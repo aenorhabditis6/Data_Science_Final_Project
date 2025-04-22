@@ -135,13 +135,27 @@ This project proposes to bridge cellular automata with recent advances in learni
 
 
 
+### Meeting wtih MM   4/21
+His comments and suggestions on our proposal: 
+Doable project, should be fun. The graph is known, states are discrete, and we don't have a network to be learned (fixed). 
+
+
+Remaining Questions: 
+1. What algorithm to be implemented to apply least-squares upon?? (ALS only deals with continuous state transitions with definable trajectories)
+2. How exactly are we going to define the transition kernel matrix?
+3. How to measure the performance of the algorithms - can we predict the trajectories well compared to the true table (how do we define trajectories or that's not a real thing)?
+4. As the size of the training data increases, how good are we in estimating the kernel table? Looking into more trajectories or longer trajectories?
 
 
 
+To-Dos: 
+1. Preliminary 2D Game of Life visualizations (input: arbitrary m * n matrix as initial state)
+2. Looking into time step t and t+1. What's the probability P((cell(t+1) = 0)|neighbors(t) = state A)?
+3. Treating each  m*n neighborhood independently; the rule of change of each neighborhood can be applied to N*N matrix (N>>m,n)
 
 
-
-
-
+Reference Papers: 
+1. cellular automata by Lufei and MM https://arxiv.org/html/2405.02928v2
+2. Relevant paper: application on tumor cell growth https://www.sciencedirect.com/science/article/pii/S0303264799000891 （thanks to Melody J）
 
 
