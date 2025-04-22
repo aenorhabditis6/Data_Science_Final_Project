@@ -17,6 +17,13 @@ def num_live_neigh(mat, i, j):
     return count
 
 # Run the simulation
+### Rules ###
+## 1. If the cells is alive (=1): 
+# It dies if it has fewer than 2 live neighbors (underpopulation) OR more than 3 live neighbors (overpopulation)
+# It lives if it has 2 or 3 live neighbors
+## 2. If the cell is dead (=0):
+# It becomes alive if it has EXACTLY 3 live neighbors
+
 def gol(mat, iterations, pause_time=0.08):
     x_size, y_size = mat.shape
     for _ in range(iterations):
