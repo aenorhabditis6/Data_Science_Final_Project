@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Game of Life Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; background-color: #111827; /* bg-gray-900 */ color: #f3f4f6; /* text-gray-100 */ }
+        #container { width: 100vw; height: 100vh; display: block; }
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(31, 41, 55, 0.8); /* bg-gray-800 with opacity */
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: flex;
+            gap: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            background-color: #3b82f6; /* bg-blue-500 */
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #2563eb; /* bg-blue-600 */
+        }
+        button:disabled {
+            background-color: #6b7280; /* bg-gray-500 */
+            cursor: not-allowed;
+        }
+        #stats {
+             position: absolute;
+             top: 10px;
+             left: 10px;
+             background-color: rgba(31, 41, 55, 0.8); /* bg-gray-800 with opacity */
+             padding: 8px;
+             border-radius: 6px;
+             font-size: 0.875rem; /* text-sm */
+             color: #d1d5db; /* text-gray-300 */
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="container"></div>
+    <div id="stats">
+        Step: 0<br>
+        Counts: Dead: 0, Type A: 0, Type B: 0
+    </div>
+    <div id="controls">
+        <button id="randomizeBtn">Randomize</button>
+        <button id="stepBtn">Step</button>
+        <button id="startStopBtn">Start</button>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- Configuration ---
+        const GRID_L = 10; // Size in X
+        const GRID_W = 10; // Size in Y
+        const GRID_H = 10; // Size in Z
+        const CELL_SIZE = 1; // Visual size of each cell cube
+        const CELL_GAP = 0.2; // Gap between cell cubes
+        const DENSITY_A = 0.08; // Initial density for Type A
+        const DENSITY_B = 0.05; // Initial density for Type B
+        const AUTO_STEP_INTERVAL = 200; // Milliseconds between steps in auto mode
+
+        // --- State Variables ---
+        let grid = null; // Will hold the 3D array of states (0, 1, 2)
+        let cellMeshes = []; // Array to hold references to the THREE.Mesh objects
+        let scene, camera, renderer, controls;
+        let isRunning = false;
+        let stepCount = 0;
+        let autoStepTimeout;
+
+        // --- Materials ---
+        const deadMaterial = new THREE.MeshStandardMaterial({ color: 0x444444, transparent: true, opacity: 0.1 });
+        const typeAMaterial = new THREE.MeshStandardMaterial({ color: 0x3b82f6 }); // Blue
+        const typeBMaterial = new THREE.MeshStandardMaterial({ color: 0x10b981 }); // Emerald/Green
+        const materials = [deadMaterial, typeAMaterial, typeBMaterial];
+
+        // --- Core Game Logic (JavaScript implementation) ---
+
+        function initializeGrid() {
+            grid = new Array(GRID_L);
+            for (let x = 0; x < GRID_L; x++) {
+                grid[x] = new Array(GRID_W);
+                for (let y = 0; y < GRID_W; y++) {
+                    grid[x][y] = new Array(GRID_H).fill(0); // Initialize all cells to dead (0)
+                }
+            }
+        }
+
+        function randomizeGrid() {
+            stepCount = 0; // Reset step count on randomize
+            const totalCells = GRID_L * GRID_W * GRID_H;
+            const numA = Math.floor(totalCells * DENSITY_A);
+            const numB = Math.floor(totalCells * DENSITY_B);
+            let states = new Array(totalCells).fill(0);
+
+            // Assign Type A and Type B states randomly
+            for (let i = 0; i < numA; i++) states[i] = 1;
+            for (let i = numA; i < numA + numB; i++) states[i] = 2;
+
+            // Shuffle the states array (Fisher-Yates shuffle)
+            for (let i = states.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [states[i], states[j]] = [states[j], states[i]];
+            }
+
+            // Assign shuffled states back to the 3D grid
+            let k = 0;
+            for (let x = 0; x < GRID_L; x++) {
+                for (let y = 0; y < GRID_W; y++) {
+                    for (let z = 0; z < GRID_H; z++) {
+                        grid[x][y][z] = states[k++];
+                    }
+                }
+            }
+            updateVisualization();
+            updateStats();
+            console.log("Grid randomized.");
+        }
+
+        function countNeighbors(x, y, z) {
+            let countA = 0;
+            let countB = 0;
+            for (let i = -1; i <= 1; i++) {
+                for (let j = -1; j <= 1; j++) {
+                    for (let k = -1; k <= 1; k++) {
+                        if (i === 0 && j === 0 && k === 0) continue;
+
+                        const nx = (x + i + GRID_L) % GRID_L; // Modulo for periodic boundaries
+                        const ny = (y + j + GRID_W) % GRID_W;
+                        const nz = (z + k + GRID_H) % GRID_H;
+
+                        const neighborState = grid[nx][ny][nz];
+                        if (neighborState === 1) countA++;
+                        else if (neighborState === 2) countB++;
+                    }
+                }
+            }
+            return { countA, countB };
+        }
+
+        function applyRules(currentState, countA, countB) {
+            // --- This is the placeholder rule set from the Python code ---
+            // --- You can modify this function if you change the rules ---
+            let nextState = currentState;
+            const liveNeighbors = countA + countB;
+
+            if (currentState === 0) { // Dead cell
+                if (countA === 3 && countB === 0) nextState = 1; // Birth of Type A
+                else if (countB === 3 && countA === 0) nextState = 2; // Birth of Type B
+            } else if (currentState === 1) { // Type A cell
+                if (liveNeighbors < 2 || liveNeighbors > 3) nextState = 0; // Dies
+            } else if (currentState === 2) { // Type B cell
+                if (liveNeighbors < 3 || liveNeighbors > 4) nextState = 0; // Dies
+            }
+            return nextState;
+        }
+
+        function step() {
+            const newGrid = JSON.parse(JSON.stringify(grid)); // Deep copy
+
+            for (let x = 0; x < GRID_L; x++) {
+                for (let y = 0; y < GRID_W; y++) {
+                    for (let z = 0; z < GRID_H; z++) {
+                        const currentState = grid[x][y][z];
+                        const { countA, countB } = countNeighbors(x, y, z);
+                        newGrid[x][y][z] = applyRules(currentState, countA, countB);
+                    }
+                }
+            }
+            grid = newGrid; // Update the main grid
+            stepCount++;
+            updateVisualization();
+            updateStats();
+        }
+
+        // --- Three.js Visualization ---
+
+        function initThree() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x111827); // Match body background
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            // Position camera to view the grid
+            const centerOffset = (Math.max(GRID_L, GRID_W, GRID_H) * (CELL_SIZE + CELL_GAP)) / 2;
+            camera.position.set(centerOffset * 1.5, centerOffset * 1.5, centerOffset * 2.5); // Adjust as needed
+            camera.lookAt(centerOffset, centerOffset, centerOffset);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xcccccc, 0.6); // Soft white light
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(1, 1, 0.5).normalize();
+            scene.add(directionalLight);
+
+            // Controls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.target.set(centerOffset - CELL_SIZE/2, centerOffset - CELL_SIZE/2, centerOffset - CELL_SIZE/2); // Center controls target
+            controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false;
+            controls.minDistance = 5;
+            controls.maxDistance = 500;
+
+            // Geometry (reused for all cells)
+            const geometry = new THREE.BoxGeometry(CELL_SIZE, CELL_SIZE, CELL_SIZE);
+
+            // Create mesh objects for each cell position
+            cellMeshes = new Array(GRID_L);
+            const totalSize = CELL_SIZE + CELL_GAP;
+            for (let x = 0; x < GRID_L; x++) {
+                cellMeshes[x] = new Array(GRID_W);
+                for (let y = 0; y < GRID_W; y++) {
+                    cellMeshes[x][y] = new Array(GRID_H);
+                    for (let z = 0; z < GRID_H; z++) {
+                        // Start with dead material, update in updateVisualization
+                        const mesh = new THREE.Mesh(geometry, deadMaterial);
+                        // Calculate position based on grid coordinates, size, and gap
+                        mesh.position.set(
+                            x * totalSize,
+                            y * totalSize,
+                            z * totalSize
+                        );
+                        scene.add(mesh);
+                        cellMeshes[x][y][z] = mesh; // Store reference
+                    }
+                }
+            }
+
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize, false);
+
+            // Start animation loop
+            animate();
+        }
+
+        function updateVisualization() {
+            if (!grid || !cellMeshes.length) return; // Ensure grid and meshes are initialized
+
+            let counts = { 0: 0, 1: 0, 2: 0 };
+            for (let x = 0; x < GRID_L; x++) {
+                for (let y = 0; y < GRID_W; y++) {
+                    for (let z = 0; z < GRID_H; z++) {
+                        const state = grid[x][y][z];
+                        const mesh = cellMeshes[x][y][z];
+                        if (mesh) {
+                            mesh.material = materials[state];
+                            // Optionally make dead cells less visible or hide them
+                            mesh.visible = (state !== 0); // Hide dead cells completely
+                            // Or use opacity: mesh.material.opacity = (state === 0) ? 0.1 : 1.0;
+                        }
+                        counts[state]++;
+                    }
+                }
+            }
+            return counts;
+        }
+
+        function updateStats() {
+             const counts = { 0: 0, 1: 0, 2: 0 };
+             if (grid) {
+                 for (let x = 0; x < GRID_L; x++) {
+                    for (let y = 0; y < GRID_W; y++) {
+                        for (let z = 0; z < GRID_H; z++) {
+                            counts[grid[x][y][z]]++;
+                        }
+                    }
+                 }
+             }
+             const statsDiv = document.getElementById('stats');
+             statsDiv.innerHTML = `Step: ${stepCount}<br>Counts: Dead: ${counts[0]}, Type A: ${counts[1]}, Type B: ${counts[2]}`;
+        }
+
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update(); // only required if controls.enableDamping = true, or if controls.autoRotate = true
+            renderer.render(scene, camera);
+        }
+
+        // --- Event Listeners ---
+        const randomizeBtn = document.getElementById('randomizeBtn');
+        const stepBtn = document.getElementById('stepBtn');
+        const startStopBtn = document.getElementById('startStopBtn');
+
+        randomizeBtn.addEventListener('click', () => {
+            if (isRunning) {
+                stopAutoStep(); // Stop if running before randomizing
+            }
+            randomizeGrid();
+        });
+
+        stepBtn.addEventListener('click', () => {
+            if (isRunning) {
+                 stopAutoStep(); // Stop auto-run if manually stepping
+            }
+            step();
+        });
+
+        startStopBtn.addEventListener('click', () => {
+            if (isRunning) {
+                stopAutoStep();
+            } else {
+                startAutoStep();
+            }
+        });
+
+        function startAutoStep() {
+            if (!grid) randomizeGrid(); // Initialize if grid is empty
+            isRunning = true;
+            startStopBtn.textContent = 'Stop';
+            stepBtn.disabled = true; // Disable manual step while running
+            randomizeBtn.disabled = true; // Disable randomize while running
+
+            function autoStepLoop() {
+                step();
+                if (isRunning) {
+                    autoStepTimeout = setTimeout(autoStepLoop, AUTO_STEP_INTERVAL);
+                }
+            }
+            autoStepLoop(); // Start the loop
+        }
+
+        function stopAutoStep() {
+            isRunning = false;
+            clearTimeout(autoStepTimeout);
+            startStopBtn.textContent = 'Start';
+            stepBtn.disabled = false;
+            randomizeBtn.disabled = false;
+        }
+
+        // --- Initialization ---
+        initializeGrid();
+        initThree();
+        randomizeGrid(); // Start with a random grid
+
+    </script>
+</body>
+</html>
