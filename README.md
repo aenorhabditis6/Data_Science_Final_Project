@@ -5,6 +5,8 @@ Cellular automata (CA) provide simplified yet powerful models for studying compl
 
 Author: Siyang Sun, Xinming Shen, Yue Yu
 
+The Final_script.ipynb has our final attempt and all functions classes. The folder has some save/load attempts intended for future scalability. 
+
 
 ### References
 1. https://arxiv.org/abs/cond-mat/0106649
